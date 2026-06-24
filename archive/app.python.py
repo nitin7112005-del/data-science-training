@@ -145,8 +145,15 @@ with colD1:
 with colD2:
     st.markdown("#### Matrix Summary Aggregates")
     df_risk = df_output.groupby("Risk Profile")[["Sprint Velocity", "Quality Score (%)"]].mean().reset_index()
+    
+    # FIX: Error hatane ke liye naya safe rendering method formatting ke saath
     st.dataframe(
-        df_risk.style.background_gradient(cmap="YlOrRd", subset=["Sprint Velocity", "Quality Score (%)"]),
+        df_risk,
         use_container_width=True,
-        hide_index=True
+        hide_index=True,
+        column_config={
+            "Risk Profile": st.column_config.TextColumn("Risk Category"),
+            "Sprint Velocity": st.column_config.NumberColumn("Avg Velocity", format="%.2f pts"),
+            "Quality Score (%)": st.column_config.NumberColumn("Quality Score", format="%.1f%%")
+        }
     )
