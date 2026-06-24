@@ -139,7 +139,6 @@ if uploaded_file is not None:
             fig_output = px.scatter(
                 filtered_df, x="Focus_Concentration_Score", y="Productivity_Score",
                 color="Sleep_Quality_Score", size="Working_Hours_Per_Day",
-                trendline="ols", trendline_color_override="red",
                 title="The Efficiency Curve: Focus vs. Productivity mapped to Sleep Quality"
             )
             st.plotly_chart(fig_output, use_container_width=True)
@@ -172,8 +171,3 @@ if uploaded_file is not None:
 else:
     # Standby/Waiting UI Interface State
     st.info("⚙️ Core Processing Unit Idle. Waiting for 'early_wakeup_health_dataset_cleaned.csv' to initialize data streams.")
-    st.image(
-        "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1200&q=80",
-        caption="Enterprise Analytics Node Dashboard [Standby Mode]",
-        use_container_width=True
-    )
