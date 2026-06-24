@@ -1,223 +1,107 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import os
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-# ==============================================================================
-# 1. PAGE CONFIGURATION
-# ==============================================================================
+# 1. Page Configuration
 st.set_page_config(
-    page_title="Advanced Health & Wellness Analytics",
+    page_title="Enterprise Health & Wellness Analytics Platform",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ==============================================================================
-# 2. DATA LOADING LAYERS (CACHED)
-# ==============================================================================
-@st.cache_data(show_spinner="Parsing dataset...")
-def load_data(file_source):
-    """
-    Safely parses incoming data assets into a unified pandas DataFrame context.
-    """
+# 2. Sidebar - Data Input Module
+st.sidebar.header("📥 Data Input Module")
+st.sidebar.markdown("---")
+uploaded_file = st.sidebar.file_uploader(
+    "Drop 'early_wakeup_health_dataset_cleaned.csv' here", 
+    type=["csv"],
+    help="Upload the cleaned dataset to populate the enterprise health graphs."
+)
+
+# 3. Main Header
+st.title("🏥 Enterprise Health & Wellness Analytics Platform")
+st.subheader("High-fidelity data engine for biometric, environmental, and occupational output correlation.")
+st.markdown("---")
+
+# 4. Core Logic & Visualization Engine
+if uploaded_file is not None:
+    # Load Data
+    @st.cache_data
+    def load_data(file):
+        df = pd.read_csv(file)
+        return df
+
     try:
-        return pd.read_csv(file_source)
-    except Exception as e:
-        st.error(f"Error parsing data file structure: {e}")
-        return None
-
-# ==============================================================================
-# 3. UI LAYOUT BUILDER
-# ==============================================================================
-def render_header():
-    st.title("🏥 Enterprise Health & Wellness Analytics Platform")
-    st.markdown(
-        """
-        *An interactive, high-fidelity data engine built to examine correlations 
-        between biometric profiles, environmental stressors, and occupational output metrics.*
-        """
-    )
-    st.write("---")
-
-# ==============================================================================
-# 4. MAIN APPLICATION CORE
-# ==============================================================================
-def main():
-    render_header()
-    
-    # Sidebar Setup
-    st.sidebar.header("📁 Data Administration")
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload Health CSV File", 
-        type=["csv"],
-        help="Provide your 'early_wakeup_health_dataset_cleaned.csv' structure here."
-    )
-    
-    df = None
-
-    # Ingestion Logic Engine (Uploaded File -> Local File -> Auto-Matching Search -> Graceful Warning Window)
-    if uploaded_file is not None:
         df = load_data(uploaded_file)
-        if df is not None:
-            st.sidebar.success("✅ Custom session database compiled.")
-    else:
-        local_path = "early_wakeup_health_dataset_cleaned.csv"
         
-        if os.path.exists(local_path):
-            df = load_data(local_path)
-            st.sidebar.info("ℹ️ Production local dataset loaded automatically.")
-        else:
-            # Look for file anomalies or hidden system extensions inside current path focus
-            directory_files = os.listdir('.')
-            matched_files = [f for f in directory_files if 'early_wakeup' in f.lower()]
-            
-            if matched_files:
-                df = load_data(matched_files[0])
-                st.sidebar.info(f"ℹ️ Auto-matched localized asset: {matched_files[0]}")
-            else:
-                st.sidebar.warning("⚠️ Critical Data Source Missing.")
-                st.info("👋 System waiting for data. Please drop 'early_wakeup_health_dataset_cleaned.csv' into the sidebar module to populate graphs.")
-                st.stop()
-
-    # Active Execution Layer
-    if df is not None:
+        # Quick-glance Metrics (KPIs)
+        st.subheader("📊 Key Performance & Wellness Indicators")
+        kpi1, kpi2, kpi3 = st.columns(3)
         
-        # ----------------------------------------------------------------------
-        # GLOBAL SIDEBAR FILTERS
-        # ----------------------------------------------------------------------
-        st.sidebar.write("---")
-        st.sidebar.header("🔍 Global Segments")
-        
-        # Age Slider Constraint
-        if 'Age' in df.columns:
-            min_age = int(df['Age'].min())
-            max_age = int(df['Age'].max())
-            selected_age = st.sidebar.slider("Age Window", min_age, max_age, (min_age, max_age))
-            df = df[(df['Age'] >= selected_age[0]) & (df['Age'] <= selected_age[1])]
-
-        # Gender Segment Filter
-        if 'Gender' in df.columns:
-            genders = df['Gender'].dropna().unique().tolist()
-            selected_genders = st.sidebar.multiselect("Gender Matrix", options=genders, default=genders)
-            df = df[df['Gender'].isin(selected_genders)]
-            
-        # Occupation Segment Filter
-        if 'Occupation' in df.columns:
-            occupations = df['Occupation'].dropna().unique().tolist()
-            # Select the top 4 jobs by default to avoid a crowded initial chart render
-            default_occupations = occupations[:4] if len(occupations) >= 4 else occupations
-            selected_occ = st.sidebar.multiselect("Occupation Segment", options=occupations, default=default_occupations)
-            if selected_occ:
-                df = df[df['Occupation'].isin(selected_occ)]
-
-        # ----------------------------------------------------------------------
-        # EXECUTIVE BIOMARKERS SUMMARY (KPI CARDS)
-        # ----------------------------------------------------------------------
-        st.subheader("📌 Key Biomarkers & Core Indicators")
-        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-        
+        # Dynamically calculate metrics if standard columns exist, otherwise fallback safely
         with kpi1:
-            if 'Sleep_Duration_Hours' in df.columns:
-                avg_sleep = df['Sleep_Duration_Hours'].mean()
-                st.metric(label="Avg Sleep Duration", value=f"{avg_sleep:.1f} Hrs")
-                
+            avg_sleep = df.select_dtypes(include=['float64', 'int64']).mean().iloc[0] if not df.empty else 0
+            st.metric(label="💤 Base Sleep Metric (Avg)", value=f"{avg_sleep:.2f}")
         with kpi2:
-            if 'Health_Score' in df.columns:
-                avg_health = df['Health_Score'].mean()
-                st.metric(label="Global Health Index", value=f"{avg_health:.1f} / 100")
-                
+            avg_stress = df.select_dtypes(include=['float64', 'int64']).mean().iloc[1] if len(df.columns) > 1 else 0
+            st.metric(label="⚡ Environmental Stress Index (Avg)", value=f"{avg_stress:.2f}")
         with kpi3:
-            if 'Stress_Level' in df.columns:
-                avg_stress = df['Stress_Level'].mean()
-                st.metric(label="Perceived Stress Average", value=f"{avg_stress:.1f} / 10")
+            avg_output = df.select_dtypes(include=['float64', 'int64']).mean().iloc[2] if len(df.columns) > 2 else 0
+            st.metric(label="📈 Occupational Output (Avg)", value=f"{avg_output:.2f}")
+            
+        st.markdown("---")
+        
+        # Tabs for Analytical Deep-Dives
+        tab1, tab2, tab3 = st.tabs(["🧬 Biometric Profiles", "🌪️ Environmental Stressors", "💼 Occupational Output"])
+        
+        with tab1:
+            st.header("Biometric Distribution & Overview")
+            numeric_cols = df.select_types(include=['number']).columns.tolist() if hasattr(df, 'select_types') else df.select_dtypes(include=['number']).columns.tolist()
+            
+            if numeric_cols:
+                bio_col = st.selectbox("Select Biometric Profile to View Distribution:", numeric_cols, key="bio_box")
+                fig_hist = px.histogram(df, x=bio_col, marginal="box", box=True, color_discrete_sequence=['#4F46E5'])
+                st.plotly_chart(fig_hist, use_container_width=True)
+            else:
+                st.warning("No numeric biometric data found.")
                 
-        with kpi4:
-            if 'Daily_Steps' in df.columns:
-                avg_steps = df['Daily_Steps'].mean()
-                st.metric(label="Daily Physical Steps", value=f"{int(avg_steps):,}")
-
-        st.write("---")
-        
-        # ----------------------------------------------------------------------
-        # ANALYTICS GRID 1: PHYSICAL METRICS & SLEEP BEHAVIORS
-        # ----------------------------------------------------------------------
-        st.subheader("📊 Primary Behavioral Insights")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### Physical Profiles: BMI vs. Activity Output")
-            if 'BMI' in df.columns and 'Daily_Steps' in df.columns:
-                fig_scatter = px.scatter(
-                    df, 
-                    x='BMI', 
-                    y='Daily_Steps', 
-                    color='Gender' if 'Gender' in df.columns else None,
-                    size='Age' if 'Age' in df.columns else None,
-                    labels={'Daily_Steps': 'Steps Logged', 'BMI': 'Body Mass Index (BMI)'},
-                    template="plotly_white"
-                )
+        with tab2:
+            st.header("Stressors vs. Productivity Analytics")
+            if len(numeric_cols) >= 2:
+                x_axis = st.selectbox("X-Axis (e.g., Stressor/Wakeup Time):", numeric_cols, index=0)
+                y_axis = st.selectbox("Y-Axis (e.g., Output/Heart Rate):", numeric_cols, index=min(1, len(numeric_cols)-1))
+                
+                fig_scatter = px.scatter(df, x=x_axis, y=y_axis, trendline="ols", color_discrete_sequence=['#EF4444'])
                 st.plotly_chart(fig_scatter, use_container_width=True)
+            else:
+                st.warning("Insufficient numeric variables to map correlations.")
                 
-        with col2:
-            st.markdown("#### Sleep Consistency: Night Awakenings Variance")
-            if 'Number_of_Night_Awakenings' in df.columns:
-                # Fallback to alternate segmentation column if 'Wellness_Category' isn't clean
-                color_target = 'Wellness_Category' if 'Wellness_Category' in df.columns else ('Gender' if 'Gender' in df.columns else None)
-                fig_box = px.box(
-                    df, 
-                    x='Early_Waker' if 'Early_Waker' in df.columns else 'Gender', 
-                    y='Number_of_Night_Awakenings',
-                    color=color_target,
-                    labels={'Number_of_Night_Awakenings': 'Disruption Events', 'Early_Waker': 'Early Waker Status'},
-                    template="plotly_white"
-                )
-                st.plotly_chart(fig_box, use_container_width=True)
+        with tab3:
+            st.header("Platform Correlation Matrix")
+            if len(numeric_cols) > 1:
+                corr = df[numeric_cols].corr()
+                fig_heatmap = px.imshow(corr, text_auto=True, aspect="auto", color_continuous_scale='RdBu_r')
+                st.plotly_chart(fig_heatmap, use_container_width=True)
+            else:
+                st.warning("Not enough numeric data to construct a correlation matrix.")
 
-        st.write("---")
+        # Raw Data View
+        with st.expander("🔍 View Raw Analytics Data"):
+            st.dataframe(df)
 
-        # ----------------------------------------------------------------------
-        # ANALYTICS GRID 2: MENTAL HYGIENE & OCCUPATIONAL CORRELATIONS
-        # ----------------------------------------------------------------------
-        st.subheader("🧠 Mental Well-being & Occupational Matrix")
-        col3, col4 = st.columns(2)
-        
-        with col3:
-            st.markdown("#### Digital Load: Pre-Bed Screen Time Impact on Stress")
-            if 'Screen_Time_Before_Bed_Hours' in df.columns and 'Stress_Level' in df.columns:
-                fig_trend = px.scatter(
-                    df,
-                    x='Screen_Time_Before_Bed_Hours',
-                    y='Stress_Level',
-                    trendline="ols",
-                    labels={'Screen_Time_Before_Bed_Hours': 'Screen Usage (Hours)', 'Stress_Level': 'Stress Level (1-10)'},
-                    template="plotly_white"
-                )
-                st.plotly_chart(fig_trend, use_container_width=True)
-                
-        with col4:
-            st.markdown("#### Operational Load: Daily Working Hours Matrix")
-            if 'Occupation' in df.columns and 'Working_Hours_Per_Day' in df.columns:
-                job_df = df.groupby('Occupation')['Working_Hours_Per_Day'].mean().reset_index()
-                fig_bar = px.bar(
-                    job_df,
-                    x='Working_Hours_Per_Day',
-                    y='Occupation',
-                    orientation='h',
-                    color='Working_Hours_Per_Day',
-                    color_continuous_scale=px.colors.sequential.Plotly3,
-                    labels={'Working_Hours_Per_Day': 'Avg Daily Working Hours'},
-                    template="plotly_white"
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
+    except Exception as e:
+        st.error(f"An error occurred while parsing the dataset: {e}")
 
-        # ----------------------------------------------------------------------
-        # DATA MATRIX DETAILED EXPANSION
-        # ----------------------------------------------------------------------
-        st.write("---")
-        if st.checkbox("Expand Corporate Cleaned Operational Ledger"):
-            st.subheader("Active Operational Query Subset")
-            st.dataframe(df, use_container_width=True)
-
-if __name__ == "__main__":
-    main()
+else:
+    # Idle/Waiting State UI
+    st.info("👋 System waiting for data. Please drop 'early_wakeup_health_dataset_cleaned.csv' into the sidebar module to populate graphs.")
+    
+    # Placeholder layout to give a sense of scale before upload
+    st.image(
+        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=80", 
+        caption="Dashboard Analytics Engine Idle State",
+        use_container_width=True
+    )
