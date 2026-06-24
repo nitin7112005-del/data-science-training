@@ -127,4 +127,53 @@ if uploaded_file is not None:
             
             st.markdown("#### Lifestyle Interventions Against Mental Overhead")
             fig_line = px.box(
-                filtered_df, x="
+                filtered_df, x="Exercise_Frequency_Per_Week", y="Mood_Score",
+                color="Early_Waker", title="The Impact of Activity & Early Rising on Mood Architecture"
+            )
+            st.plotly_chart(fig_line, use_container_width=True)
+
+        # TAB 3: OCCUPATIONAL OUTPUT
+        with tab3:
+            st.header("Predictors of Peak Human Performance")
+            
+            fig_output = px.scatter(
+                filtered_df, x="Focus_Concentration_Score", y="Productivity_Score",
+                color="Sleep_Quality_Score", size="Working_Hours_Per_Day",
+                trendline="ols", trendline_color_override="red",
+                title="The Efficiency Curve: Focus vs. Productivity mapped to Sleep Quality"
+            )
+            st.plotly_chart(fig_output, use_container_width=True)
+            
+            # Cross-Correlation Matrix Subsystem
+            st.subheader("🧩 Feature Interdependence Matrix")
+            target_cols = [
+                "Sleep_Duration_Hours", "Sleep_Quality_Score", "Screen_Time_Before_Bed_Hours",
+                "Stress_Level", "Energy_Level_Score", "Productivity_Score", "Focus_Concentration_Score"
+            ]
+            
+            # Form correlation framework from numerical layers
+            corr_matrix = filtered_df[target_cols].corr()
+            
+            fig_heat = px.imshow(
+                corr_matrix, text_auto=".2f", aspect="auto",
+                color_continuous_scale="RdBu_r", zmin=-1, zmax=1,
+                title="Linear Correlations: Lifestyle Factors vs. Workforce Output"
+            )
+            st.plotly_chart(fig_heat, use_container_width=True)
+
+        # 5. DATA SYSTEM EXPLORER
+        with st.expander("🔍 Deep-Data Subsystem Explorer (Filtered Data Rows)"):
+            st.dataframe(filtered_df)
+
+    except Exception as e:
+        st.error(f"Execution Error within Analytics Engine: {e}")
+        st.info("Ensure the dataset retains all standard headers matching your workspace scheme.")
+
+else:
+    # Standby/Waiting UI Interface State
+    st.info("⚙️ Core Processing Unit Idle. Waiting for 'early_wakeup_health_dataset_cleaned.csv' to initialize data streams.")
+    st.image(
+        "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=1200&q=80",
+        caption="Enterprise Analytics Node Dashboard [Standby Mode]",
+        use_container_width=True
+    )
