@@ -13,26 +13,38 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# 2. CACHED DATA LOADING
+# 2. DATA LOADING LAYERS
 # ==============================================================================
-@st.cache_data(show_spinner="Loading dataset...")
+@st.cache_data(show_spinner="Parsing dataset...")
 def load_data(file_source):
-    """
-    Safely reads a CSV file and handles unexpected parser errors.
-    """
     try:
         return pd.read_csv(file_source)
     except Exception as e:
         st.error(f"Error parsing data file: {e}")
         return None
 
+def generate_default_data():
+    """Generates an enterprise-safe fallback dataset to prevent blank screens."""
+    import numpy as np
+    np.random.seed(42)
+    dates = pd.date_range(start="2026-01-01", periods=150, freq='D')
+    return pd.DataFrame({
+        "Age": np.random.randint(20, 65, size=150),
+        "Gender": np.random.choice(["Male", "Female"], size=150),
+        "Early_Waker": np.random.choice(["Yes", "No"], size=150),
+        "Sleep_Duration_Hours": np.random.uniform(5.5, 8.5, size=150),
+        "Health_Score": np.random.randint(55, 95, size=150),
+        "Stress_Level": np.random.uniform(3.0, 8.5, size=150),
+        "Daily_Steps": np.random.randint(3000, 12000, size=150),
+        "Exercise_Type": np.random.choice(["Running", "HIIT", "Yoga", "Gym"], size=150),
+        "Energy_Level_Score": np.random.uniform(4.0, 9.0, size=150),
+        "Wellness_Category": np.random.choice(["Good", "Excellent", "Fair"], size=150)
+    })
+
 # ==============================================================================
-# 3. UI RENDERING COMPONENTS
+# 3. UI LAYOUT BUILDER
 # ==============================================================================
 def render_header():
-    """
-    Renders the primary application headers and overview markdown.
-    """
     st.title("🏥 Personal Health & Wellness Dashboard")
     st.markdown(
         """
@@ -53,48 +65,46 @@ def main():
     uploaded_file = st.sidebar.file_uploader(
         "Upload Health CSV File", 
         type=["csv"],
-        help="Provide the 'early_wakeup_health_dataset_cleaned.csv' file here."
+        help="Upload 'early_wakeup_health_dataset_cleaned.csv' to visualize custom metrics."
     )
     
     df = None
 
-    # Data Ingestion Hierarchy (Uploaded File -> Local Fallback -> Graceful Stop)
+    # Ingestion Flow
     if uploaded_file is not None:
         df = load_data(uploaded_file)
         if df is not None:
             st.sidebar.success("✅ File uploaded successfully.")
     else:
-        try:
+        import os
+        if os.path.exists("early_wakeup_health_dataset_cleaned.csv"):
             df = load_data("early_wakeup_health_dataset_cleaned.csv")
             st.sidebar.info("ℹ️ Using default local dataset.")
-        except FileNotFoundError:
-            st.warning("⚠️ Data source could not be resolved automatically.")
-            st.info("👋 Please upload your 'early_wakeup_health_dataset_cleaned.csv' file via the sidebar to initialize the dashboard.")
-            st.stop()
+        else:
+            df = generate_default_data()
+            st.sidebar.warning("⚠️ CSV not detected. Displaying demonstration dataset.")
 
-    # Active Dashboard Session
+    # Render Dashboard Components
     if df is not None:
         
         # ----------------------------------------------------------------------
-        # SIDEBAR FILTERS SECTION
+        # GLOBAL FILTERS
         # ----------------------------------------------------------------------
         st.sidebar.write("---")
         st.sidebar.header("🔍 Global Filters")
         
-        # Dynamic Filter: Gender
         if 'Gender' in df.columns:
             genders = df['Gender'].dropna().unique().tolist()
             selected_genders = st.sidebar.multiselect("Gender", options=genders, default=genders)
             df = df[df['Gender'].isin(selected_genders)]
             
-        # Dynamic Filter: Early Waker Status
         if 'Early_Waker' in df.columns:
             waker_options = df['Early_Waker'].dropna().unique().tolist()
             selected_wakers = st.sidebar.multiselect("Early Waker Status", options=waker_options, default=waker_options)
             df = df[df['Early_Waker'].isin(selected_wakers)]
             
         # ----------------------------------------------------------------------
-        # MAIN DASHBOARD METRICS & KPI CARDS
+        # KEY PERFORMANCE INDICATORS
         # ----------------------------------------------------------------------
         st.subheader("📌 Key Performance Indicators")
         kpi1, kpi2, kpi3, kpi4 = st.columns(4)
@@ -102,7 +112,7 @@ def main():
         with kpi1:
             if 'Sleep_Duration_Hours' in df.columns:
                 avg_sleep = df['Sleep_Duration_Hours'].mean()
-                st.metric(label="Avg Sleep Duration", value=f"{avg_sleep:.2f} Hrs")
+                st.metric(label="Avg Sleep Duration", value=f"{avg_sleep:.1f} Hrs")
                 
         with kpi2:
             if 'Health_Score' in df.columns:
@@ -122,7 +132,7 @@ def main():
         st.write("---")
         
         # ----------------------------------------------------------------------
-        # VISUALIZATIONS SECTION
+        # METRIC VISUALIZATIONS
         # ----------------------------------------------------------------------
         st.subheader("📊 Data Visualizations")
         col1, col2 = st.columns(2)
@@ -155,7 +165,7 @@ def main():
                 st.plotly_chart(fig_scatter, use_container_width=True)
 
         # ----------------------------------------------------------------------
-        # DETAILED DATA TABLE VIEW
+        # DETAILED MATRIX VIEW
         # ----------------------------------------------------------------------
         st.write("---")
         if st.checkbox("Show Screened Raw Dataset View"):
